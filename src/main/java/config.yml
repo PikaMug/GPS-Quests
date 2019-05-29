@@ -1,0 +1,6 @@
+# GPS-Quests configuration
+enabled:
+  citizens-to-interact: true
+  citizens-to-kill: true
+  locations-to-reach: true
+  item-delivery-targets: true
