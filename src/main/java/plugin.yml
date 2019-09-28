@@ -1,6 +1,6 @@
 name:  GPS-Quests
 main: me.pikamug.gpsquests.GPSQuests
-version: "1.0"
+version: "1.1"
 api-version: 1.13
 description: Navigate Quests objectives with GPS arrows
 author: PikaMug

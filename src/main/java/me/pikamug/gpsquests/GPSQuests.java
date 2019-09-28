@@ -81,10 +81,18 @@ public class GPSQuests extends JavaPlugin {
 	}
 	
 	public void onDisable() {
-		for (Quester q : quests.getQuesters()) {
-			if (gpsapi.gpsIsActive(q.getPlayer())) {
-				gpsapi.stopGPS(q.getPlayer());
-			}
+		PluginManager pm = getServer().getPluginManager();
+		
+		if (pm.getPlugin("GPS") != null) {
+        	if (!pm.getPlugin("GPS").isEnabled()) {
+        		for (Quester q : quests.getQuesters()) {
+        			if (q != null) {
+        				if (gpsapi.gpsIsActive(q.getPlayer())) {
+            				gpsapi.stopGPS(q.getPlayer());
+            			}
+        			}
+        		}
+        	}
 		}
 	}
 	
