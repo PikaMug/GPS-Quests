@@ -171,13 +171,13 @@ public class GPSQuests extends JavaPlugin {
 		if (citizensToInteract && stage.getCitizensToInteract() != null && stage.getCitizensToInteract().size() > 0) {
 			if (quests.getDependencies().getCitizens() != null) {
 				for (Integer i : stage.getCitizensToInteract()) {
-					targetLocations.add(quests.getNPCLocation(i));
+					targetLocations.add(quests.getDependencies().getNPCLocation(i));
 				}
 			}
 		} else if (citizensToKill && stage.getCitizensToKill() != null && stage.getCitizensToKill().size() > 0) {
 			if (quests.getDependencies().getCitizens() != null) {
 				for (Integer i : stage.getCitizensToKill()) {
-					targetLocations.add(quests.getNPCLocation(i));
+					targetLocations.add(quests.getDependencies().getNPCLocation(i));
 				}
 			}
 		} else if (locationsToReach && stage.getLocationsToReach() != null && stage.getLocationsToReach().size() > 0) {
