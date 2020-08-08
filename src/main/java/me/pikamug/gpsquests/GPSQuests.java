@@ -41,7 +41,7 @@ import me.blackvein.quests.events.quester.QuesterPostFailQuestEvent;
 import me.blackvein.quests.events.quester.QuesterPostStartQuestEvent;
 
 public class GPSQuests extends JavaPlugin {
-    private static GPSAPI gpsapi;
+    private GPSAPI gpsapi;
     private Quests quests;
     
     private boolean reload = false;
