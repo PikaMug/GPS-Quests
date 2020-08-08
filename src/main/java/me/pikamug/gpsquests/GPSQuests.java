@@ -51,8 +51,9 @@ public class GPSQuests extends JavaPlugin {
 	public boolean locationsToReach;
 	public boolean itemDeliveryTargets;
 	
-	public void onEnable() {
-		PluginManager pm = getServer().getPluginManager();
+	@Override
+    public void onEnable() {
+		final PluginManager pm = getServer().getPluginManager();
         
         if (pm.getPlugin("GPS") != null) {
         	if (!pm.getPlugin("GPS").isEnabled()) {
@@ -80,12 +81,13 @@ public class GPSQuests extends JavaPlugin {
         }
 	}
 	
-	public void onDisable() {
-		PluginManager pm = getServer().getPluginManager();
+	@Override
+    public void onDisable() {
+		final PluginManager pm = getServer().getPluginManager();
 		
 		if (pm.getPlugin("GPS") != null) {
         	if (!pm.getPlugin("GPS").isEnabled()) {
-        		for (Quester q : quests.getQuesters()) {
+        		for (final Quester q : quests.getQuesters()) {
         			if (q != null) {
         				if (gpsapi.gpsIsActive(q.getPlayer())) {
             				gpsapi.stopGPS(q.getPlayer());
@@ -114,9 +116,9 @@ public class GPSQuests extends JavaPlugin {
 	
 	private class ServerListener implements Listener {
         @EventHandler(priority=EventPriority.MONITOR)
-        public void onPluginEnable(PluginEnableEvent event) {
-            Plugin p = event.getPlugin();
-            String name = p.getDescription().getName();
+        public void onPluginEnable(final PluginEnableEvent event) {
+            final Plugin p = event.getPlugin();
+            final String name = p.getDescription().getName();
             if (name.equals("GPS") || name.equals("Quests")) {
                 if (gpsapi != null && quests.isEnabled()) {
                 	activate();
@@ -127,27 +129,27 @@ public class GPSQuests extends JavaPlugin {
 	
 	private class QuestsListener implements Listener {
 		@EventHandler
-		public void onQuesterPostStartQuest(QuesterPostStartQuestEvent event) {
+		public void onQuesterPostStartQuest(final QuesterPostStartQuestEvent event) {
 			updateGPS(event.getQuest(), event.getQuester());
 		}
 		
 		@EventHandler
-		public void onQuesterPostChangeStage(QuesterPostChangeStageEvent event) {
+		public void onQuesterPostChangeStage(final QuesterPostChangeStageEvent event) {
 			updateGPS(event.getQuest(), event.getQuester());
 		}
 		
 		@EventHandler
-		public void onQuesterPostCompleteQuest(QuesterPostCompleteQuestEvent event) {
+		public void onQuesterPostCompleteQuest(final QuesterPostCompleteQuestEvent event) {
 			stopGPS(event.getQuest(), event.getQuester());
 		}
 		
 		@EventHandler
-		public void onQuesterPostFailQuest(QuesterPostFailQuestEvent event) {
+		public void onQuesterPostFailQuest(final QuesterPostFailQuestEvent event) {
 			stopGPS(event.getQuest(), event.getQuester());
 		}
 		
 		@EventHandler
-		public void onQuestQuitEvent(QuestQuitEvent event) {
+		public void onQuestQuitEvent(final QuestQuitEvent event) {
 			stopGPS(event.getQuest(), event.getQuester());
 		}
 	}
@@ -161,22 +163,22 @@ public class GPSQuests extends JavaPlugin {
 	 * @param quester The quester to have their GPS updated
 	 * @return true if successful
 	 */
-	public boolean updateGPS(Quest quest, Quester quester) {
-		LinkedList<Location> targetLocations = new LinkedList<Location>();
-		Stage stage = quester.getCurrentStage(quest);
+	public boolean updateGPS(final Quest quest, final Quester quester) {
+		final LinkedList<Location> targetLocations = new LinkedList<Location>();
+		final Stage stage = quester.getCurrentStage(quest);
 		if (stage == null) {
 			getLogger().severe("Called updateGPS() with a null stage from quest " + quest.getName());
 			return false;
 		}
 		if (citizensToInteract && stage.getCitizensToInteract() != null && stage.getCitizensToInteract().size() > 0) {
 			if (quests.getDependencies().getCitizens() != null) {
-				for (Integer i : stage.getCitizensToInteract()) {
+				for (final Integer i : stage.getCitizensToInteract()) {
 					targetLocations.add(quests.getDependencies().getNPCLocation(i));
 				}
 			}
 		} else if (citizensToKill && stage.getCitizensToKill() != null && stage.getCitizensToKill().size() > 0) {
 			if (quests.getDependencies().getCitizens() != null) {
-				for (Integer i : stage.getCitizensToKill()) {
+				for (final Integer i : stage.getCitizensToKill()) {
 					targetLocations.add(quests.getDependencies().getNPCLocation(i));
 				}
 			}
@@ -184,16 +186,16 @@ public class GPSQuests extends JavaPlugin {
 			targetLocations.addAll(stage.getLocationsToReach());
 		} else if (itemDeliveryTargets && stage.getItemDeliveryTargets() != null && stage.getItemDeliveryTargets().size() > 0) {
 			if (quests.getDependencies().getCitizens() != null) {
-				for (Integer i : stage.getItemDeliveryTargets()) {
+				for (final Integer i : stage.getItemDeliveryTargets()) {
 					targetLocations.add(quests.getDependencies().getCitizens().getNPCRegistry().getById(i).getStoredLocation());
 				}
 			}
 		}
 		if (targetLocations != null && !targetLocations.isEmpty()) {
 			int index = 1;
-			String pointName = "quests-" + quester.getPlayer().getUniqueId().toString() + "-" + quest.getName() + "-" + stage.toString() + "-";
-			Player p = quester.getPlayer();
-			for (Location l : targetLocations) {
+			final String pointName = "quests-" + quester.getPlayer().getUniqueId().toString() + "-" + quest.getName() + "-" + stage.toString() + "-";
+			final Player p = quester.getPlayer();
+			for (final Location l : targetLocations) {
 				if (l.getWorld().getName().equals(p.getWorld().getName())) {
 					if (!gpsapi.gpsIsActive(p)) {
 						gpsapi.addPoint(pointName + index, l);
@@ -222,15 +224,15 @@ public class GPSQuests extends JavaPlugin {
 	 * @param quester The quester to have their GPS updated
 	 * @return true if successful
 	 */
-	public boolean stopGPS(Quest quest, Quester quester) {
-		Player p = quester.getPlayer();
+	public boolean stopGPS(final Quest quest, final Quester quester) {
+		final Player p = quester.getPlayer();
 		if (gpsapi.gpsIsActive(p)) {
 			gpsapi.stopGPS(p);
-			for (Point point : gpsapi.getAllPoints()) {
+			for (final Point point : gpsapi.getAllPoints()) {
 				if (point.getName().startsWith("quests-" + p.getUniqueId().toString() + "-" + quest.getName())) {
 					try {
 						gpsapi.removePoint(point.getName());
-					} catch (ConcurrentModificationException e) {
+					} catch (final ConcurrentModificationException e) {
 						// Throws an exception for some reason, but we have to remove point to avoid duplicates
 					}
 				}
