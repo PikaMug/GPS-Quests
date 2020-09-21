@@ -21,6 +21,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.server.PluginEnableEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
@@ -125,6 +126,16 @@ public class GPSQuests extends JavaPlugin {
                 }
             }
         }
+        
+        @EventHandler(priority=EventPriority.MONITOR)
+        public void onPlayerRespawnEvent(final PlayerRespawnEvent event) {
+            final Quester quester = quests.getQuester(event.getPlayer().getUniqueId());
+            if (quester.getCompassTarget() != null) {
+                updateGPS(quester.getCompassTarget(), quester);
+            } else if (quester.getCurrentQuests().size() == 1) {
+                updateGPS(quester.getCurrentQuests().entrySet().iterator().next().getKey(), quester);
+            }
+        }
     }
     
     private class QuestsListener implements Listener {
@@ -164,12 +175,12 @@ public class GPSQuests extends JavaPlugin {
      * @return true if successful
      */
     public boolean updateGPS(final Quest quest, final Quester quester) {
-        final LinkedList<Location> targetLocations = new LinkedList<Location>();
         final Stage stage = quester.getCurrentStage(quest);
         if (stage == null) {
             getLogger().severe("Called updateGPS() with a null stage from quest " + quest.getName());
             return false;
         }
+        final LinkedList<Location> targetLocations = new LinkedList<Location>();
         if (citizensToInteract && stage.getCitizensToInteract() != null && stage.getCitizensToInteract().size() > 0) {
             if (quests.getDependencies().getCitizens() != null) {
                 for (final Integer i : stage.getCitizensToInteract()) {
@@ -198,7 +209,12 @@ public class GPSQuests extends JavaPlugin {
             for (final Location l : targetLocations) {
                 if (l.getWorld().getName().equals(p.getWorld().getName())) {
                     if (!gpsapi.gpsIsActive(p)) {
-                        gpsapi.addPoint(pointName + index, l);
+                        try {
+                            gpsapi.addPoint(pointName + index, l);
+                        } catch (final IllegalArgumentException e) {
+                            // Player died or is re-taking quest
+                            gpsapi.startGPS(quester.getPlayer(), pointName + index);
+                        }
                         index++;
                     }
                 }
