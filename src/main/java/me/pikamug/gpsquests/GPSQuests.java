@@ -1,4 +1,4 @@
-/*******************************************************************************************************
+/*
  * Copyright (c) 2019 PikaMug
  * 
  * THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
@@ -8,7 +8,7 @@
  * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
  * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *******************************************************************************************************/
+ */
 
 package me.pikamug.gpsquests;
 
@@ -16,6 +16,9 @@ import java.util.ConcurrentModificationException;
 import java.util.LinkedList;
 import java.util.Map.Entry;
 
+import me.blackvein.quests.player.IQuester;
+import me.blackvein.quests.quests.IQuest;
+import me.blackvein.quests.quests.IStage;
 import org.bukkit.Location;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
@@ -50,7 +53,6 @@ public class GPSQuests extends JavaPlugin {
     private Quests quests;
     
     private boolean reload = false;
-    private FileConfiguration cfg;
     public boolean citizensToInteract;
     public boolean citizensToKill;
     public boolean locationsToReach;
@@ -92,7 +94,7 @@ public class GPSQuests extends JavaPlugin {
         
         if (pm.getPlugin("GPS") != null) {
             if (!pm.getPlugin("GPS").isEnabled()) {
-                for (final Quester q : quests.getOnlineQuesters()) {
+                for (final IQuester q : quests.getOnlineQuesters()) {
                     if (q != null) {
                         if (gpsapi.gpsIsActive(q.getPlayer())) {
                             gpsapi.stopGPS(q.getPlayer());
@@ -109,7 +111,7 @@ public class GPSQuests extends JavaPlugin {
         } else {
             reload = true;
         }
-        cfg = getConfig();
+        final FileConfiguration cfg = getConfig();
         cfg.options().copyDefaults(true);
         this.saveConfig();
         
@@ -189,14 +191,14 @@ public class GPSQuests extends JavaPlugin {
      * @param quester The quester to have their GPS updated
      * @return true if successful
      */
-    public boolean updateGPS(final Quest quest, final Quester quester) {
-        final Stage stage = quester.getCurrentStage(quest);
+    public boolean updateGPS(final IQuest quest, final IQuester quester) {
+        final IStage stage = quester.getCurrentStage(quest);
         if (stage == null) {
             return false;
         }
         
         int stageIndex = 0;
-        for (final Entry<Quest, Integer> set : quester.getCurrentQuests().entrySet()) {
+        for (final Entry<IQuest, Integer> set : quester.getCurrentQuestsTemp().entrySet()) {
             if (set.getKey().getId().equals(quest.getId())) {
                 stageIndex = set.getValue();
             }
@@ -210,7 +212,7 @@ public class GPSQuests extends JavaPlugin {
             objectiveIndex++;
         }
         
-        final LinkedList<Location> targetLocations = new LinkedList<Location>();
+        final LinkedList<Location> targetLocations = new LinkedList<>();
         if (citizensToInteract && stage.getCitizensToInteract() != null && stage.getCitizensToInteract().size() > 0) {
             if (quests.getDependencies().getCitizens() != null) {
                 for (final Integer i : stage.getCitizensToInteract()) {
@@ -232,9 +234,9 @@ public class GPSQuests extends JavaPlugin {
                 }
             }
         }
-        if (targetLocations != null && !targetLocations.isEmpty()) {
+        if (!targetLocations.isEmpty()) {
             final Player p = quester.getPlayer();
-            final String pointName = "quests-" + p.getUniqueId().toString() + "-" + quest.getId() + "-" + stageIndex + "-" + objectiveIndex;
+            final String pointName = "quests-" + p.getUniqueId() + "-" + quest.getId() + "-" + stageIndex + "-" + objectiveIndex;
             try {
                 if (objectiveIndex < targetLocations.size()) {
                     gpsapi.addPoint(pointName, targetLocations.get(objectiveIndex));
@@ -244,7 +246,7 @@ public class GPSQuests extends JavaPlugin {
             }
             gpsapi.startGPS(p, pointName);
         }
-        return targetLocations != null && !targetLocations.isEmpty();
+        return !targetLocations.isEmpty();
     }
     
     /**
@@ -256,12 +258,12 @@ public class GPSQuests extends JavaPlugin {
      * @param quester The quester to have their GPS updated
      * @return true if successful
      */
-    public boolean stopGPS(final Quest quest, final Quester quester) {
+    public boolean stopGPS(final IQuest quest, final IQuester quester) {
         final Player p = quester.getPlayer();
         if (gpsapi.gpsIsActive(p)) {
             gpsapi.stopGPS(p);
             for (final Point point : gpsapi.getAllPoints()) {
-                if (point.getName().startsWith("quests-" + p.getUniqueId().toString() + "-" + quest.getId())) {
+                if (point.getName().startsWith("quests-" + p.getUniqueId() + "-" + quest.getId())) {
                     try {
                         gpsapi.removePoint(point.getName());
                     } catch (final ConcurrentModificationException e) {
