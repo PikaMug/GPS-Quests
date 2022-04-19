@@ -35,10 +35,8 @@ import com.live.bemmamin.gps.Vars;
 import com.live.bemmamin.gps.api.GPSAPI;
 import com.live.bemmamin.gps.logic.Point;
 
-import me.blackvein.quests.Quest;
 import me.blackvein.quests.Quester;
 import me.blackvein.quests.Quests;
-import me.blackvein.quests.Stage;
 import me.blackvein.quests.enums.ObjectiveType;
 import me.blackvein.quests.events.quest.QuestQuitEvent;
 import me.blackvein.quests.events.quest.QuestUpdateCompassEvent;
@@ -51,6 +49,7 @@ import net.md_5.bungee.api.ChatColor;
 public class GPSQuests extends JavaPlugin {
     private GPSAPI gpsapi;
     private Quests quests;
+    private long lastUpdated;
     
     private boolean reload = false;
     public boolean citizensToInteract;
@@ -185,13 +184,16 @@ public class GPSQuests extends JavaPlugin {
     /**
      * Add location-objective points for GPS and begin navigation.<p>
      * 
-     * Do not call this method multiple times in succession.
+     * Avoid call this method multiple times in succession.
      * 
      * @param quest The quest to get objectives for
      * @param quester The quester to have their GPS updated
      * @return true if successful
      */
     public boolean updateGPS(final IQuest quest, final IQuester quester) {
+        if (System.currentTimeMillis() - lastUpdated < 500L) {
+            return false;
+        }
         final IStage stage = quester.getCurrentStage(quest);
         if (stage == null) {
             return false;
@@ -245,6 +247,7 @@ public class GPSQuests extends JavaPlugin {
                 // Player may have died or is re-taking quest
             }
             gpsapi.startGPS(p, pointName);
+            lastUpdated = System.currentTimeMillis();
         }
         return !targetLocations.isEmpty();
     }
