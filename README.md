@@ -7,12 +7,7 @@
 [![Rating](https://img.shields.io/spiget/stars/67835)](https://www.spigotmc.org/resources/gps-quests.67835/)
 </div>
 
-Download
----
-
-Available for download on SpigotMC: https://www.spigotmc.org/resources/gps-quests.67835/
-
-Usage
----
-
-Documentation can be found in the Wiki: https://github.com/PikaMug/LocaleLib/wiki
+## Download
+Distributed through these fine vendors:
+- Lectern (https://lectern.browsit.org/resources/resource/5-gpsquests/)
+- SpigotMC (https://www.spigotmc.org/resources/gps-quests.67835/)

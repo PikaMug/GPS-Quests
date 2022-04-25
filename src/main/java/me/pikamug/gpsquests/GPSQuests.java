@@ -15,10 +15,12 @@ package me.pikamug.gpsquests;
 import java.util.ConcurrentModificationException;
 import java.util.LinkedList;
 import java.util.Map.Entry;
+import java.util.UUID;
 
 import me.blackvein.quests.player.IQuester;
 import me.blackvein.quests.quests.IQuest;
 import me.blackvein.quests.quests.IStage;
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
@@ -44,7 +46,6 @@ import me.blackvein.quests.events.quester.QuesterPostChangeStageEvent;
 import me.blackvein.quests.events.quester.QuesterPostCompleteQuestEvent;
 import me.blackvein.quests.events.quester.QuesterPostFailQuestEvent;
 import me.blackvein.quests.events.quester.QuesterPostUpdateObjectiveEvent;
-import net.md_5.bungee.api.ChatColor;
 
 public class GPSQuests extends JavaPlugin {
     private GPSAPI gpsapi;
@@ -215,24 +216,24 @@ public class GPSQuests extends JavaPlugin {
         }
         
         final LinkedList<Location> targetLocations = new LinkedList<>();
-        if (citizensToInteract && stage.getCitizensToInteract() != null && stage.getCitizensToInteract().size() > 0) {
+        if (citizensToInteract && stage.getNpcsToInteract() != null && stage.getNpcsToInteract().size() > 0) {
             if (quests.getDependencies().getCitizens() != null) {
-                for (final Integer i : stage.getCitizensToInteract()) {
-                    targetLocations.add(quests.getDependencies().getNPCLocation(i));
+                for (final UUID uuid : stage.getNpcsToInteract()) {
+                    targetLocations.add(quests.getDependencies().getNPCLocation(uuid));
                 }
             }
-        } else if (citizensToKill && stage.getCitizensToKill() != null && stage.getCitizensToKill().size() > 0) {
+        } else if (citizensToKill && stage.getNpcsToKill() != null && stage.getNpcsToKill().size() > 0) {
             if (quests.getDependencies().getCitizens() != null) {
-                for (final Integer i : stage.getCitizensToKill()) {
-                    targetLocations.add(quests.getDependencies().getNPCLocation(i));
+                for (final UUID uuid : stage.getNpcsToKill()) {
+                    targetLocations.add(quests.getDependencies().getNPCLocation(uuid));
                 }
             }
         } else if (locationsToReach && stage.getLocationsToReach() != null && stage.getLocationsToReach().size() > 0) {
             targetLocations.addAll(stage.getLocationsToReach());
         } else if (itemDeliveryTargets && stage.getItemDeliveryTargets() != null && stage.getItemDeliveryTargets().size() > 0) {
             if (quests.getDependencies().getCitizens() != null) {
-                for (final Integer i : stage.getItemDeliveryTargets()) {
-                    targetLocations.add(quests.getDependencies().getCitizens().getNPCRegistry().getById(i).getStoredLocation());
+                for (final UUID uuid : stage.getItemDeliveryTargets()) {
+                    targetLocations.add(quests.getDependencies().getCitizens().getNPCRegistry().getByUniqueId(uuid).getStoredLocation());
                 }
             }
         }
