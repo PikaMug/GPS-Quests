@@ -17,6 +17,7 @@ import java.util.LinkedList;
 import java.util.Map.Entry;
 import java.util.UUID;
 
+import com.live.bemmamin.gps.playerdata.PlayerData;
 import me.blackvein.quests.player.IQuester;
 import me.blackvein.quests.quests.IQuest;
 import me.blackvein.quests.quests.IStage;
@@ -56,6 +57,7 @@ public class GPSQuests extends JavaPlugin {
     public boolean citizensToInteract;
     public boolean citizensToKill;
     public boolean locationsToReach;
+    public boolean mobsToKillWithin;
     public boolean itemDeliveryTargets;
     
     @Override
@@ -118,6 +120,7 @@ public class GPSQuests extends JavaPlugin {
         citizensToInteract = cfg.getBoolean("citizens-to-interact", true);
         citizensToKill = cfg.getBoolean("citizens-to-kill", true);
         locationsToReach = cfg.getBoolean("locations-to-reach", true);
+        mobsToKillWithin = cfg.getBoolean("mobs-to-kill-within", true);
         itemDeliveryTargets = cfg.getBoolean("item-delivery-targets", true);
     }
     
@@ -156,6 +159,7 @@ public class GPSQuests extends JavaPlugin {
             if (event.getObjective().getType() == ObjectiveType.TALK_TO_NPC
                     || event.getObjective().getType() == ObjectiveType.KILL_NPC
                     || event.getObjective().getType() == ObjectiveType.REACH_LOCATION
+                    || event.getObjective().getType() == ObjectiveType.KILL_MOB
                     || event.getObjective().getType() == ObjectiveType.DELIVER_ITEM) {
                 updateGPS(event.getQuest(), event.getQuester());
             }
@@ -230,6 +234,8 @@ public class GPSQuests extends JavaPlugin {
             }
         } else if (locationsToReach && stage.getLocationsToReach() != null && stage.getLocationsToReach().size() > 0) {
             targetLocations.addAll(stage.getLocationsToReach());
+        } else if (mobsToKillWithin && stage.getLocationsToKillWithin() != null && stage.getLocationsToKillWithin().size() > 0) {
+            targetLocations.addAll(stage.getLocationsToKillWithin());
         } else if (itemDeliveryTargets && stage.getItemDeliveryTargets() != null && stage.getItemDeliveryTargets().size() > 0) {
             if (quests.getDependencies().getCitizens() != null) {
                 for (final UUID uuid : stage.getItemDeliveryTargets()) {
@@ -239,16 +245,21 @@ public class GPSQuests extends JavaPlugin {
         }
         if (!targetLocations.isEmpty()) {
             final Player p = quester.getPlayer();
-            final String pointName = "quests-" + p.getUniqueId() + "-" + quest.getId() + "-" + stageIndex + "-" + objectiveIndex;
-            try {
-                if (objectiveIndex < targetLocations.size()) {
-                    gpsapi.addPoint(pointName, targetLocations.get(objectiveIndex));
+            final UUID uuid = p.getUniqueId();
+            final String pointName = "quests-" + uuid + "-" + quest.getId() + "-" + stageIndex + "-" + objectiveIndex;
+            if (PlayerData.getPlayerData(uuid).getPath() == null
+                    || PlayerData.getPlayerData(uuid).getPath().getCurrentTarget() == null
+                    || !PlayerData.getPlayerData(uuid).getPath().getCurrentTarget().getName().equals(pointName)) {
+                try {
+                    if (objectiveIndex < targetLocations.size()) {
+                        gpsapi.addPoint(pointName, targetLocations.get(objectiveIndex));
+                    }
+                } catch (final IllegalArgumentException e) {
+                    // Player may have died or is re-taking quest
                 }
-            } catch (final IllegalArgumentException e) {
-                // Player may have died or is re-taking quest
+                gpsapi.startGPS(p, pointName);
+                lastUpdated = System.currentTimeMillis();
             }
-            gpsapi.startGPS(p, pointName);
-            lastUpdated = System.currentTimeMillis();
         }
         return !targetLocations.isEmpty();
     }
@@ -271,7 +282,7 @@ public class GPSQuests extends JavaPlugin {
                     try {
                         gpsapi.removePoint(point.getName());
                     } catch (final ConcurrentModificationException e) {
-                        // Throws an exception for some reason, but we have to remove point to avoid duplicates
+                        // Not ideal, but we have to remove point to avoid duplicates
                     }
                 }
             }

@@ -3,4 +3,5 @@ enabled:
   citizens-to-interact: true
   citizens-to-kill: true
   locations-to-reach: true
+  mobs-to-kill-within: true
   item-delivery-targets: true
