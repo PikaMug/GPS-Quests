@@ -1,4 +1,3 @@
-# GPS-Quests configuration
 enabled:
   citizens-to-interact: true
   citizens-to-kill: true

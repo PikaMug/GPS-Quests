@@ -115,6 +115,7 @@ public class GPSQuests extends JavaPlugin {
         }
         final FileConfiguration cfg = getConfig();
         cfg.options().copyDefaults(true);
+        cfg.options().header("GPS-Quests configuration");
         this.saveConfig();
         
         citizensToInteract = cfg.getBoolean("citizens-to-interact", true);
