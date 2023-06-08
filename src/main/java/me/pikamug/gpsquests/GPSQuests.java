@@ -54,8 +54,8 @@ public class GPSQuests extends JavaPlugin {
     private long lastUpdated;
     
     private boolean reload = false;
-    public boolean citizensToInteract;
-    public boolean citizensToKill;
+    public boolean npcsToInteract;
+    public boolean npcsToKill;
     public boolean locationsToReach;
     public boolean mobsToKillWithin;
     public boolean itemDeliveryTargets;
@@ -118,8 +118,8 @@ public class GPSQuests extends JavaPlugin {
         cfg.options().header("GPS-Quests configuration");
         this.saveConfig();
         
-        citizensToInteract = cfg.getBoolean("citizens-to-interact", true);
-        citizensToKill = cfg.getBoolean("citizens-to-kill", true);
+        npcsToInteract = cfg.getBoolean("npcs-to-interact", true);
+        npcsToKill = cfg.getBoolean("npcs-to-kill", true);
         locationsToReach = cfg.getBoolean("locations-to-reach", true);
         mobsToKillWithin = cfg.getBoolean("mobs-to-kill-within", true);
         itemDeliveryTargets = cfg.getBoolean("item-delivery-targets", true);
@@ -221,16 +221,16 @@ public class GPSQuests extends JavaPlugin {
         }
         
         final LinkedList<Location> targetLocations = new LinkedList<>();
-        if (citizensToInteract && stage.getNpcsToInteract() != null && stage.getNpcsToInteract().size() > 0) {
-            if (quests.getDependencies().getCitizens() != null) {
+        if (npcsToInteract && stage.getNpcsToInteract() != null && stage.getNpcsToInteract().size() > 0) {
+            if (quests.getDependencies().getCitizens() != null || quests.getDependencies().getZnpcsPlus() != null) {
                 for (final UUID uuid : stage.getNpcsToInteract()) {
-                    targetLocations.add(quests.getDependencies().getNPCLocation(uuid));
+                    targetLocations.add(quests.getDependencies().getNpcLocation(uuid));
                 }
             }
-        } else if (citizensToKill && stage.getNpcsToKill() != null && stage.getNpcsToKill().size() > 0) {
-            if (quests.getDependencies().getCitizens() != null) {
+        } else if (npcsToKill && stage.getNpcsToKill() != null && stage.getNpcsToKill().size() > 0) {
+            if (quests.getDependencies().getCitizens() != null || quests.getDependencies().getZnpcsPlus() != null) {
                 for (final UUID uuid : stage.getNpcsToKill()) {
-                    targetLocations.add(quests.getDependencies().getNPCLocation(uuid));
+                    targetLocations.add(quests.getDependencies().getNpcLocation(uuid));
                 }
             }
         } else if (locationsToReach && stage.getLocationsToReach() != null && stage.getLocationsToReach().size() > 0) {
