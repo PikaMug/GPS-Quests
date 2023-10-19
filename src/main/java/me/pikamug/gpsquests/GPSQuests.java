@@ -12,16 +12,23 @@
 
 package me.pikamug.gpsquests;
 
-import java.util.ConcurrentModificationException;
-import java.util.LinkedList;
-import java.util.Map.Entry;
-import java.util.UUID;
-
+import com.live.bemmamin.gps.Vars;
+import com.live.bemmamin.gps.api.GPSAPI;
+import com.live.bemmamin.gps.logic.Point;
 import com.live.bemmamin.gps.playerdata.PlayerData;
-import me.blackvein.quests.player.IQuester;
-import me.blackvein.quests.quests.IQuest;
-import me.blackvein.quests.quests.IStage;
-import org.bukkit.ChatColor;
+import me.pikamug.quests.Quests;
+import me.pikamug.quests.dependencies.BukkitDependencies;
+import me.pikamug.quests.enums.ObjectiveType;
+import me.pikamug.quests.events.quest.QuestQuitEvent;
+import me.pikamug.quests.events.quest.QuestUpdateCompassEvent;
+import me.pikamug.quests.events.quester.BukkitQuesterPostChangeStageEvent;
+import me.pikamug.quests.events.quester.BukkitQuesterPostCompleteQuestEvent;
+import me.pikamug.quests.events.quester.BukkitQuesterPostFailQuestEvent;
+import me.pikamug.quests.events.quester.BukkitQuesterPostUpdateObjectiveEvent;
+import me.pikamug.quests.player.Quester;
+import me.pikamug.quests.quests.Quest;
+import me.pikamug.quests.quests.components.Objective;
+import me.pikamug.quests.quests.components.Stage;
 import org.bukkit.Location;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
@@ -34,19 +41,11 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import com.live.bemmamin.gps.Vars;
-import com.live.bemmamin.gps.api.GPSAPI;
-import com.live.bemmamin.gps.logic.Point;
-
-import me.blackvein.quests.Quester;
-import me.blackvein.quests.Quests;
-import me.blackvein.quests.enums.ObjectiveType;
-import me.blackvein.quests.events.quest.QuestQuitEvent;
-import me.blackvein.quests.events.quest.QuestUpdateCompassEvent;
-import me.blackvein.quests.events.quester.QuesterPostChangeStageEvent;
-import me.blackvein.quests.events.quester.QuesterPostCompleteQuestEvent;
-import me.blackvein.quests.events.quester.QuesterPostFailQuestEvent;
-import me.blackvein.quests.events.quester.QuesterPostUpdateObjectiveEvent;
+import java.util.Collection;
+import java.util.ConcurrentModificationException;
+import java.util.LinkedList;
+import java.util.Map.Entry;
+import java.util.UUID;
 
 public class GPSQuests extends JavaPlugin {
     private GPSAPI gpsapi;
@@ -96,7 +95,7 @@ public class GPSQuests extends JavaPlugin {
         
         if (pm.getPlugin("GPS") != null) {
             if (!pm.getPlugin("GPS").isEnabled()) {
-                for (final IQuester q : quests.getOnlineQuesters()) {
+                for (final Quester q : quests.getOnlineQuesters()) {
                     if (q != null) {
                         if (gpsapi.gpsIsActive(q.getPlayer())) {
                             gpsapi.stopGPS(q.getPlayer());
@@ -156,7 +155,7 @@ public class GPSQuests extends JavaPlugin {
         }
         
         @EventHandler
-        public void onQuesterPostUpdateObjective(final QuesterPostUpdateObjectiveEvent event) {
+        public void onQuesterPostUpdateObjective(final BukkitQuesterPostUpdateObjectiveEvent event) {
             if (event.getObjective().getType() == ObjectiveType.TALK_TO_NPC
                     || event.getObjective().getType() == ObjectiveType.KILL_NPC
                     || event.getObjective().getType() == ObjectiveType.REACH_LOCATION
@@ -167,17 +166,17 @@ public class GPSQuests extends JavaPlugin {
         }
         
         @EventHandler
-        public void onQuesterPostChangeStage(final QuesterPostChangeStageEvent event) {
+        public void onQuesterPostChangeStage(final BukkitQuesterPostChangeStageEvent event) {
             updateGPS(event.getQuest(), event.getQuester());
         }
         
         @EventHandler
-        public void onQuesterPostCompleteQuest(final QuesterPostCompleteQuestEvent event) {
+        public void onQuesterPostCompleteQuest(final BukkitQuesterPostCompleteQuestEvent event) {
             stopGPS(event.getQuest(), event.getQuester());
         }
         
         @EventHandler
-        public void onQuesterPostFailQuest(final QuesterPostFailQuestEvent event) {
+        public void onQuesterPostFailQuest(final BukkitQuesterPostFailQuestEvent event) {
             stopGPS(event.getQuest(), event.getQuester());
         }
         
@@ -196,51 +195,52 @@ public class GPSQuests extends JavaPlugin {
      * @param quester The quester to have their GPS updated
      * @return true if successful
      */
-    public boolean updateGPS(final IQuest quest, final IQuester quester) {
+    public boolean updateGPS(final Quest quest, final Quester quester) {
         if (System.currentTimeMillis() - lastUpdated < 500L) {
             return false;
         }
-        final IStage stage = quester.getCurrentStage(quest);
+        final Stage stage = quester.getCurrentStage(quest);
         if (stage == null) {
             return false;
         }
         
         int stageIndex = 0;
-        for (final Entry<IQuest, Integer> set : quester.getCurrentQuestsTemp().entrySet()) {
+        for (final Entry<Quest, Integer> set : quester.getCurrentQuests().entrySet()) {
             if (set.getKey().getId().equals(quest.getId())) {
                 stageIndex = set.getValue();
             }
         }
         
         int objectiveIndex = 0;
-        for (final String objective : quester.getCurrentObjectives(quest, false)) {
-            if (objective.startsWith(ChatColor.GREEN.toString())) {
+        for (final Objective objective : quester.getCurrentObjectives(quest, false, false)) {
+            if (objective.getProgress() < objective.getGoal()) {
                 break;
             }
             objectiveIndex++;
         }
         
+        final BukkitDependencies depends = ((BukkitDependencies) quests.getDependencies());
         final LinkedList<Location> targetLocations = new LinkedList<>();
         if (npcsToInteract && stage.getNpcsToInteract() != null && stage.getNpcsToInteract().size() > 0) {
-            if (quests.getDependencies().getCitizens() != null || quests.getDependencies().getZnpcsPlus() != null) {
+            if (depends.getCitizens() != null || depends.getZnpcsPlus() != null) {
                 for (final UUID uuid : stage.getNpcsToInteract()) {
-                    targetLocations.add(quests.getDependencies().getNpcLocation(uuid));
+                    targetLocations.add(depends.getNpcLocation(uuid));
                 }
             }
         } else if (npcsToKill && stage.getNpcsToKill() != null && stage.getNpcsToKill().size() > 0) {
-            if (quests.getDependencies().getCitizens() != null || quests.getDependencies().getZnpcsPlus() != null) {
+            if (depends.getCitizens() != null || depends.getZnpcsPlus() != null) {
                 for (final UUID uuid : stage.getNpcsToKill()) {
-                    targetLocations.add(quests.getDependencies().getNpcLocation(uuid));
+                    targetLocations.add(depends.getNpcLocation(uuid));
                 }
             }
         } else if (locationsToReach && stage.getLocationsToReach() != null && stage.getLocationsToReach().size() > 0) {
-            targetLocations.addAll(stage.getLocationsToReach());
+            targetLocations.addAll((Collection<? extends Location>) stage.getLocationsToReach());
         } else if (mobsToKillWithin && stage.getLocationsToKillWithin() != null && stage.getLocationsToKillWithin().size() > 0) {
-            targetLocations.addAll(stage.getLocationsToKillWithin());
+            targetLocations.addAll((Collection<? extends Location>) stage.getLocationsToKillWithin());
         } else if (itemDeliveryTargets && stage.getItemDeliveryTargets() != null && stage.getItemDeliveryTargets().size() > 0) {
-            if (quests.getDependencies().getCitizens() != null) {
+            if (depends.getCitizens() != null) {
                 for (final UUID uuid : stage.getItemDeliveryTargets()) {
-                    targetLocations.add(quests.getDependencies().getCitizens().getNPCRegistry().getByUniqueId(uuid).getStoredLocation());
+                    targetLocations.add(depends.getCitizens().getNPCRegistry().getByUniqueId(uuid).getStoredLocation());
                 }
             }
         }
@@ -274,7 +274,7 @@ public class GPSQuests extends JavaPlugin {
      * @param quester The quester to have their GPS updated
      * @return true if successful
      */
-    public boolean stopGPS(final IQuest quest, final IQuester quester) {
+    public boolean stopGPS(final Quest quest, final Quester quester) {
         final Player p = quester.getPlayer();
         if (gpsapi.gpsIsActive(p)) {
             gpsapi.stopGPS(p);
