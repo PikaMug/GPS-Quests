@@ -221,26 +221,26 @@ public class GPSQuests extends JavaPlugin {
         
         final BukkitDependencies depends = ((BukkitDependencies) quests.getDependencies());
         final LinkedList<Location> targetLocations = new LinkedList<>();
-        if (npcsToInteract && stage.getNpcsToInteract() != null && stage.getNpcsToInteract().size() > 0) {
-            if (depends.getCitizens() != null || depends.getZnpcsPlus() != null) {
+        if (npcsToInteract && stage.getNpcsToInteract() != null && !stage.getNpcsToInteract().isEmpty()) {
+            if (depends.hasAnyNpcDependencies()) {
                 for (final UUID uuid : stage.getNpcsToInteract()) {
                     targetLocations.add(depends.getNpcLocation(uuid));
                 }
             }
-        } else if (npcsToKill && stage.getNpcsToKill() != null && stage.getNpcsToKill().size() > 0) {
-            if (depends.getCitizens() != null || depends.getZnpcsPlus() != null) {
+        } else if (npcsToKill && stage.getNpcsToKill() != null && !stage.getNpcsToKill().isEmpty()) {
+            if (depends.hasAnyNpcDependencies()) {
                 for (final UUID uuid : stage.getNpcsToKill()) {
                     targetLocations.add(depends.getNpcLocation(uuid));
                 }
             }
-        } else if (locationsToReach && stage.getLocationsToReach() != null && stage.getLocationsToReach().size() > 0) {
+        } else if (locationsToReach && stage.getLocationsToReach() != null && !stage.getLocationsToReach().isEmpty()) {
             targetLocations.addAll((Collection<? extends Location>) stage.getLocationsToReach());
-        } else if (mobsToKillWithin && stage.getLocationsToKillWithin() != null && stage.getLocationsToKillWithin().size() > 0) {
+        } else if (mobsToKillWithin && stage.getLocationsToKillWithin() != null && !stage.getLocationsToKillWithin().isEmpty()) {
             targetLocations.addAll((Collection<? extends Location>) stage.getLocationsToKillWithin());
-        } else if (itemDeliveryTargets && stage.getItemDeliveryTargets() != null && stage.getItemDeliveryTargets().size() > 0) {
-            if (depends.getCitizens() != null) {
+        } else if (itemDeliveryTargets && stage.getItemDeliveryTargets() != null && !stage.getItemDeliveryTargets().isEmpty()) {
+            if (depends.hasAnyNpcDependencies()) {
                 for (final UUID uuid : stage.getItemDeliveryTargets()) {
-                    targetLocations.add(depends.getCitizens().getNPCRegistry().getByUniqueId(uuid).getStoredLocation());
+                    targetLocations.add(depends.getNpcLocation(uuid));
                 }
             }
         }
