@@ -19,8 +19,8 @@ import com.live.bemmamin.gps.playerdata.PlayerData;
 import me.pikamug.quests.Quests;
 import me.pikamug.quests.dependencies.BukkitDependencies;
 import me.pikamug.quests.enums.ObjectiveType;
-import me.pikamug.quests.events.quest.QuestQuitEvent;
-import me.pikamug.quests.events.quest.QuestUpdateCompassEvent;
+import me.pikamug.quests.events.quest.BukkitQuestQuitEvent;
+import me.pikamug.quests.events.quest.BukkitQuestUpdateCompassEvent;
 import me.pikamug.quests.events.quester.BukkitQuesterPostChangeStageEvent;
 import me.pikamug.quests.events.quester.BukkitQuesterPostCompleteQuestEvent;
 import me.pikamug.quests.events.quester.BukkitQuesterPostFailQuestEvent;
@@ -29,6 +29,7 @@ import me.pikamug.quests.player.Quester;
 import me.pikamug.quests.quests.Quest;
 import me.pikamug.quests.quests.components.Objective;
 import me.pikamug.quests.quests.components.Stage;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
@@ -62,23 +63,20 @@ public class GPSQuests extends JavaPlugin {
     @Override
     public void onEnable() {
         final PluginManager pm = getServer().getPluginManager();
-        
-        if (pm.getPlugin("GPS") != null) {
-            if (!pm.getPlugin("GPS").isEnabled()) {
-                getLogger().warning("GPS was detected, but is not enabled! Fix it to allow linkage.");
-                return;
-            } else {
-                gpsapi = new GPSAPI(this);
-                Vars.getInstance().setMaxDistanceToEntry(9999.0);
-            }
+        final Plugin gps = pm.getPlugin("GPS");
+        if (gps != null && !gps.isEnabled()) {
+            getLogger().warning("GPS was detected, but is not enabled! Fix it to allow linkage.");
+            return;
+        } else {
+            gpsapi = new GPSAPI(this);
+            Vars.getInstance().setMaxDistanceToEntry(9999.0);
         }
-        if (pm.getPlugin("Quests") != null) {
-            if (!pm.getPlugin("Quests").isEnabled()) {
-                getLogger().warning("Quests was detected, but is not enabled! Fix it to allow linkage.");
-                return;
-            } else {
-                quests = (Quests) pm.getPlugin("Quests");
-            }
+        final Plugin qp = pm.getPlugin("Quests");
+        if (qp != null && !qp.isEnabled()) {
+            getLogger().warning("Quests was detected, but is not enabled! Fix it to allow linkage.");
+            return;
+        } else {
+            quests = (Quests) qp;
         }
         
         getServer().getPluginManager().registerEvents(new ServerListener(), this);  
@@ -92,14 +90,13 @@ public class GPSQuests extends JavaPlugin {
     @Override
     public void onDisable() {
         final PluginManager pm = getServer().getPluginManager();
-        
-        if (pm.getPlugin("GPS") != null) {
-            if (!pm.getPlugin("GPS").isEnabled()) {
-                for (final Quester q : quests.getOnlineQuesters()) {
-                    if (q != null) {
-                        if (gpsapi.gpsIsActive(q.getPlayer())) {
-                            gpsapi.stopGPS(q.getPlayer());
-                        }
+        final Plugin gps = pm.getPlugin("GPS");
+        if (gps != null && !gps.isEnabled()) {
+            for (final Quester q : quests.getOnlineQuesters()) {
+                if (q != null) {
+                    final Player p = Bukkit.getPlayer(q.getUUID());
+                    if (gpsapi.gpsIsActive(p)) {
+                        gpsapi.stopGPS(p);
                     }
                 }
             }
@@ -150,7 +147,7 @@ public class GPSQuests extends JavaPlugin {
     private class QuestsListener implements Listener {
         
         @EventHandler
-        public void onQuestUpdateCompass(final QuestUpdateCompassEvent event) {
+        public void onQuestUpdateCompass(final BukkitQuestUpdateCompassEvent event) {
             updateGPS(event.getQuest(), event.getQuester());
         }
         
@@ -181,7 +178,7 @@ public class GPSQuests extends JavaPlugin {
         }
         
         @EventHandler
-        public void onQuestQuitEvent(final QuestQuitEvent event) {
+        public void onQuestQuitEvent(final BukkitQuestQuitEvent event) {
             stopGPS(event.getQuest(), event.getQuester());
         }
     }
@@ -245,7 +242,7 @@ public class GPSQuests extends JavaPlugin {
             }
         }
         if (!targetLocations.isEmpty()) {
-            final Player p = quester.getPlayer();
+            final Player p = Bukkit.getPlayer(quester.getUUID());
             final UUID uuid = p.getUniqueId();
             final String pointName = "quests-" + uuid + "-" + quest.getId() + "-" + stageIndex + "-" + objectiveIndex;
             if (PlayerData.getPlayerData(uuid).getPath() == null
@@ -275,7 +272,10 @@ public class GPSQuests extends JavaPlugin {
      * @return true if successful
      */
     public boolean stopGPS(final Quest quest, final Quester quester) {
-        final Player p = quester.getPlayer();
+        final Player p = Bukkit.getPlayer(quester.getUUID());
+        if (p == null) {
+            return false;
+        }
         if (gpsapi.gpsIsActive(p)) {
             gpsapi.stopGPS(p);
             for (final Point point : gpsapi.getAllPoints()) {
